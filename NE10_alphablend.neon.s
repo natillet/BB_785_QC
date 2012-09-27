@@ -50,8 +50,10 @@ alphablend_neon:
 		vdup.32           q14, r3
 		mov               r3, #255			@ 0x000000ff
 		vdup.32           q15, r3
-		movw              r3, #65532		@ lower 16 (FFFC) 
-		movt              r3, #15			@ upper 16 (F) => total FFFFC = 1048572 => image is (512px x 512px) x 4B
+@		movw              r3, #65532		@ lower 16 (FFFC) 
+@		movt              r3, #15			@ upper 16 (F) => total FFFFC = 1048572 => image is (512px x 512px) x 4B
+		mov               r3, #0
+		movt              r3, #16			@ upper 16 (0x10) => total 0x100000 = 1048576 => image is (512px x 512px) x 4B
 		add               r3, r3, r0 
 
 .L_mainloop_float:
@@ -103,7 +105,8 @@ alphablend_neon:
 		vorr            q4, q4, q12			@
 		vorr            q5, q5, q4			@
 		vorr            q6, q6, q5			
-		
+
+@		vmul.i32        q6, q0, q1			@TEMP see if segfault with just this in the loop
 		@ store the result for the current set
         vstmia          r0!, {d12-d13}			@ store dstImage from q6
 		cmp             r0, r3
