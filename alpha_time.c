@@ -1,4 +1,5 @@
 void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage);
+void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage);
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -33,7 +34,7 @@ int main(int argc, char**argv)
        return 4;
      }
      gettimeofday(&oldTv, NULL);
-     alphaBlend_c(&foreImage[0], &backImage[0], &newImage[0]);
+     alphaBlend_flat(&foreImage[0], &backImage[0], &newImage[0]);
      gettimeofday(&newTv, NULL);
      fprintf(stdout, "Routine took %d microseconds\n", (int)(newTv.tv_usec - oldTv.tv_usec));
      fwrite(newImage, 512*sizeof(int),512,outFile);
@@ -65,5 +66,20 @@ void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
                               (0x0000ff00 & (dst_g << 8)) |
                               (0x000000ff & (dst_b));
      }
+  }
+}
+
+void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage)
+{
+  int y;
+  for(y = 0; y < 262144; y++){
+	int a_fg = A(fgImage[y]);
+	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+	dstImage[y] =  0xff000000 |
+						  (0x00ff0000 & (dst_r << 16)) |
+						  (0x0000ff00 & (dst_g << 8)) |
+						  (0x000000ff & (dst_b));
   }
 }
