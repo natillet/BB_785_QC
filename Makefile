@@ -8,7 +8,7 @@ $(PROJ_NAME): $(OBJFILES)
 #	echo $(OBJFILES)
 	$(CC) -o $(PROJ_NAME) $(OBJFILES) $(LIBS)
 %.o: %.c
-	$(CC) $(CFLAGS) -DFLAT -c -o $@ $<
+	$(CC) $(CFLAGS) -DNEON -c -o $@ $<
 %.o: %.s
 	$(CC) $(CFLAGS) -c -o $@ $<
 %.lst: %.c

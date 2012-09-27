@@ -43,11 +43,11 @@ int main(int argc, char**argv)
      }
      gettimeofday(&oldTv, NULL);
 #ifdef ORIGINAL
-     alphaBlend_flat(&foreImage[0], &backImage[0], &newImage[0]);
+     alphaBlend_c(&foreImage[0], &backImage[0], &newImage[0]);
 #elif FLAT
      alphaBlend_flat(&foreImage[0], &backImage[0], &newImage[0]);
 #elif NEON
-	 alphablend_neon(&foreImage[0], &backImage[0], &newImage[0]);
+	 alphablend_neon(&newImage[0], &backImage[0], &foreImage[0]);
 #endif
      gettimeofday(&newTv, NULL);
      fprintf(stdout, "Routine took %d microseconds\n", (int)(newTv.tv_usec - oldTv.tv_usec));
