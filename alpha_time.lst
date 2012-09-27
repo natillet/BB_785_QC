@@ -1,0 +1,1166 @@
+   1              		.cpu cortex-a8
+   2              		.eabi_attribute 27, 3
+   3              		.fpu neon
+   4              		.eabi_attribute 23, 1
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 2
+   8              		.eabi_attribute 30, 2
+   9              		.eabi_attribute 18, 4
+  10              		.file	"alpha_time.c"
+  18              	.Ltext0:
+  19              		.cfi_sections	.debug_frame
+  20              		.align	2
+  21              		.p2align 4,,15
+  22              		.global	main
+  24              	main:
+  25              	.LFB11:
+  26              		.file 1 "alpha_time.c"
+   1:alpha_time.c  **** void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage);
+   2:alpha_time.c  **** void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage);
+   3:alpha_time.c  **** 
+   4:alpha_time.c  **** #include <stdio.h>
+   5:alpha_time.c  **** #include <sys/time.h>
+   6:alpha_time.c  **** 
+   7:alpha_time.c  **** int backImage[512 * 512];
+   8:alpha_time.c  **** int foreImage[512 * 512];
+   9:alpha_time.c  **** int newImage[512 * 512];
+  10:alpha_time.c  **** 
+  11:alpha_time.c  **** int main(int argc, char**argv)
+  12:alpha_time.c  **** {
+  27              		.loc 1 12 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 16
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              	.LVL0:
+  13:alpha_time.c  ****    FILE *fgFile, *bgFile, *outFile;
+  14:alpha_time.c  ****    int result;
+  15:alpha_time.c  ****    struct timeval oldTv, newTv;
+  16:alpha_time.c  **** 
+  17:alpha_time.c  ****    if(argc != 4){
+  32              		.loc 1 17 0
+  33 0000 040050E3 		cmp	r0, #4
+  12:alpha_time.c  **** {
+  34              		.loc 1 12 0
+  35 0004 F0402DE9 		stmfd	sp!, {r4, r5, r6, r7, lr}
+  36              	.LCFI0:
+  37              		.cfi_def_cfa_offset 20
+  38 0008 108B2DED 		fstmfdd	sp!, {d8, d9, d10, d11, d12, d13, d14, d15}
+  39              	.LCFI1:
+  40              		.cfi_def_cfa_offset 84
+  41 000c 0040A0E1 		mov	r4, r0
+  42              		.cfi_offset 94, -28
+  43              		.cfi_offset 92, -36
+  44              		.cfi_offset 90, -44
+  45              		.cfi_offset 88, -52
+  46              		.cfi_offset 86, -60
+  47              		.cfi_offset 84, -68
+  48              		.cfi_offset 82, -76
+  49              		.cfi_offset 80, -84
+  50              		.cfi_offset 14, -4
+  51              		.cfi_offset 7, -8
+  52              		.cfi_offset 6, -12
+  53              		.cfi_offset 5, -16
+  54              		.cfi_offset 4, -20
+  55 0010 14D04DE2 		sub	sp, sp, #20
+  56              	.LCFI2:
+  57              		.cfi_def_cfa_offset 104
+  12:alpha_time.c  **** {
+  58              		.loc 1 12 0
+  59 0014 0170A0E1 		mov	r7, r1
+  60              		.loc 1 17 0
+  61 0018 0C00000A 		beq	.L2
+  18:alpha_time.c  ****       fprintf(stderr, "Usage:%s foreground background outFile\n",argv[0]);
+  62              		.loc 1 18 0
+  63 001c 003000E3 		movw	r3, #:lower16:stderr
+  64 0020 001000E3 		movw	r1, #:lower16:.LC0
+  65              	.LVL1:
+  66 0024 003040E3 		movt	r3, #:upper16:stderr
+  67 0028 001040E3 		movt	r1, #:upper16:.LC0
+  68 002c 002097E5 		ldr	r2, [r7, #0]
+  69 0030 000093E5 		ldr	r0, [r3, #0]
+  70              	.LVL2:
+  71 0034 FEFFFFEB 		bl	fprintf
+  19:alpha_time.c  ****       return 1;
+  72              		.loc 1 19 0
+  73 0038 0100A0E3 		mov	r0, #1
+  74              	.LVL3:
+  75              	.L3:
+  20:alpha_time.c  ****    }
+  21:alpha_time.c  ****    fgFile = fopen(argv[1], "rb");
+  22:alpha_time.c  ****    bgFile = fopen(argv[2], "rb");
+  23:alpha_time.c  ****    outFile = fopen(argv[3], "wb");
+  24:alpha_time.c  **** 
+  25:alpha_time.c  ****    if(fgFile && bgFile && outFile){
+  26:alpha_time.c  ****      result = fread(backImage, 512*sizeof(int), 512, bgFile);
+  27:alpha_time.c  ****      if(result != 512){
+  28:alpha_time.c  ****        fprintf(stderr, "Error with backImage\n");
+  29:alpha_time.c  ****        return 3;
+  30:alpha_time.c  ****      }
+  31:alpha_time.c  ****      result = fread(foreImage, 512*sizeof(int), 512, fgFile);
+  32:alpha_time.c  ****      if(result != 512){
+  33:alpha_time.c  ****        fprintf(stderr, "Error with foreImage\n");
+  34:alpha_time.c  ****        return 4;
+  35:alpha_time.c  ****      }
+  36:alpha_time.c  ****      gettimeofday(&oldTv, NULL);
+  37:alpha_time.c  ****      alphaBlend_flat(&foreImage[0], &backImage[0], &newImage[0]);
+  38:alpha_time.c  ****      gettimeofday(&newTv, NULL);
+  39:alpha_time.c  ****      fprintf(stdout, "Routine took %d microseconds\n", (int)(newTv.tv_usec - oldTv.tv_usec));
+  40:alpha_time.c  ****      fwrite(newImage, 512*sizeof(int),512,outFile);
+  41:alpha_time.c  ****      fclose(fgFile);
+  42:alpha_time.c  ****      fclose(bgFile);
+  43:alpha_time.c  ****      fclose(outFile);
+  44:alpha_time.c  ****      return 0;
+  45:alpha_time.c  ****    }
+  46:alpha_time.c  ****    fprintf(stderr, "Problem opening a file\n");
+  47:alpha_time.c  ****    return 2;
+  48:alpha_time.c  **** }
+  76              		.loc 1 48 0
+  77 003c 14D08DE2 		add	sp, sp, #20
+  78 0040 108BBDEC 		fldmfdd	sp!, {d8, d9, d10, d11, d12, d13, d14, d15}
+  79 0044 F080BDE8 		ldmfd	sp!, {r4, r5, r6, r7, pc}
+  80              	.LVL4:
+  81 0048 00F020E3 		.p2align 4
+  81      00F020E3 
+  82              	.L2:
+  21:alpha_time.c  ****    fgFile = fopen(argv[1], "rb");
+  83              		.loc 1 21 0
+  84 0050 001000E3 		movw	r1, #:lower16:.LC1
+  85              	.LVL5:
+  86 0054 040097E5 		ldr	r0, [r7, #4]
+  87 0058 001040E3 		movt	r1, #:upper16:.LC1
+  88 005c FEFFFFEB 		bl	fopen
+  22:alpha_time.c  ****    bgFile = fopen(argv[2], "rb");
+  89              		.loc 1 22 0
+  90 0060 001000E3 		movw	r1, #:lower16:.LC1
+  91 0064 001040E3 		movt	r1, #:upper16:.LC1
+  21:alpha_time.c  ****    fgFile = fopen(argv[1], "rb");
+  92              		.loc 1 21 0
+  93 0068 0060A0E1 		mov	r6, r0
+  94              	.LVL6:
+  22:alpha_time.c  ****    bgFile = fopen(argv[2], "rb");
+  95              		.loc 1 22 0
+  96 006c 080097E5 		ldr	r0, [r7, #8]
+  97              	.LVL7:
+  98 0070 FEFFFFEB 		bl	fopen
+  23:alpha_time.c  ****    outFile = fopen(argv[3], "wb");
+  99              		.loc 1 23 0
+ 100 0074 001000E3 		movw	r1, #:lower16:.LC2
+ 101 0078 001040E3 		movt	r1, #:upper16:.LC2
+  22:alpha_time.c  ****    bgFile = fopen(argv[2], "rb");
+ 102              		.loc 1 22 0
+ 103 007c 0050A0E1 		mov	r5, r0
+ 104              	.LVL8:
+  23:alpha_time.c  ****    outFile = fopen(argv[3], "wb");
+ 105              		.loc 1 23 0
+ 106 0080 0C0097E5 		ldr	r0, [r7, #12]
+ 107              	.LVL9:
+ 108 0084 FEFFFFEB 		bl	fopen
+  25:alpha_time.c  ****    if(fgFile && bgFile && outFile){
+ 109              		.loc 1 25 0
+ 110 0088 000055E3 		cmp	r5, #0
+ 111 008c 00005613 		cmpne	r6, #0
+  23:alpha_time.c  ****    outFile = fopen(argv[3], "wb");
+ 112              		.loc 1 23 0
+ 113 0090 0070A0E1 		mov	r7, r0
+ 114              	.LVL10:
+  25:alpha_time.c  ****    if(fgFile && bgFile && outFile){
+ 115              		.loc 1 25 0
+ 116 0094 1500000A 		beq	.L4
+  25:alpha_time.c  ****    if(fgFile && bgFile && outFile){
+ 117              		.loc 1 25 0 is_stmt 0 discriminator 1
+ 118 0098 000050E3 		cmp	r0, #0
+ 119 009c 1300000A 		beq	.L4
+  26:alpha_time.c  ****      result = fread(backImage, 512*sizeof(int), 512, bgFile);
+ 120              		.loc 1 26 0 is_stmt 1
+ 121 00a0 000000E3 		movw	r0, #:lower16:backImage
+ 122              	.LVL11:
+ 123 00a4 022CA0E3 		mov	r2, #512
+ 124 00a8 021BA0E3 		mov	r1, #2048
+ 125 00ac 000040E3 		movt	r0, #:upper16:backImage
+ 126 00b0 0530A0E1 		mov	r3, r5
+ 127 00b4 FEFFFFEB 		bl	fread
+  27:alpha_time.c  ****      if(result != 512){
+ 128              		.loc 1 27 0
+ 129 00b8 020C50E3 		cmp	r0, #512
+  26:alpha_time.c  ****      result = fread(backImage, 512*sizeof(int), 512, bgFile);
+ 130              		.loc 1 26 0
+ 131 00bc 0020A0E1 		mov	r2, r0
+ 132              	.LVL12:
+  27:alpha_time.c  ****      if(result != 512){
+ 133              		.loc 1 27 0
+ 134 00c0 1600000A 		beq	.L5
+  28:alpha_time.c  ****        fprintf(stderr, "Error with backImage\n");
+ 135              		.loc 1 28 0
+ 136 00c4 00C000E3 		movw	ip, #:lower16:stderr
+ 137 00c8 000000E3 		movw	r0, #:lower16:.LC3
+ 138              	.LVL13:
+ 139 00cc 00C040E3 		movt	ip, #:upper16:stderr
+ 140 00d0 000040E3 		movt	r0, #:upper16:.LC3
+ 141 00d4 0110A0E3 		mov	r1, #1
+ 142 00d8 1520A0E3 		mov	r2, #21
+ 143              	.LVL14:
+ 144 00dc 00309CE5 		ldr	r3, [ip, #0]
+ 145 00e0 FEFFFFEB 		bl	fwrite
+  29:alpha_time.c  ****        return 3;
+ 146              		.loc 1 29 0
+ 147 00e4 0300A0E3 		mov	r0, #3
+ 148 00e8 D3FFFFEA 		b	.L3
+ 149 00ec 00F020E3 		.p2align 4
+ 150              	.L4:
+  46:alpha_time.c  ****    fprintf(stderr, "Problem opening a file\n");
+ 151              		.loc 1 46 0
+ 152 00f0 00C000E3 		movw	ip, #:lower16:stderr
+ 153 00f4 000000E3 		movw	r0, #:lower16:.LC6
+ 154 00f8 00C040E3 		movt	ip, #:upper16:stderr
+ 155 00fc 000040E3 		movt	r0, #:upper16:.LC6
+ 156 0100 0110A0E3 		mov	r1, #1
+ 157 0104 1720A0E3 		mov	r2, #23
+ 158 0108 00309CE5 		ldr	r3, [ip, #0]
+ 159 010c FEFFFFEB 		bl	fwrite
+  47:alpha_time.c  ****    return 2;
+ 160              		.loc 1 47 0
+ 161 0110 0200A0E3 		mov	r0, #2
+ 162 0114 C8FFFFEA 		b	.L3
+ 163              	.LVL15:
+ 164 0118 00F020E3 		.p2align 4
+ 164      00F020E3 
+ 165              	.L5:
+  31:alpha_time.c  ****      result = fread(foreImage, 512*sizeof(int), 512, fgFile);
+ 166              		.loc 1 31 0
+ 167 0120 000000E3 		movw	r0, #:lower16:foreImage
+ 168              	.LVL16:
+ 169 0124 021BA0E3 		mov	r1, #2048
+ 170 0128 000040E3 		movt	r0, #:upper16:foreImage
+ 171 012c 0630A0E1 		mov	r3, r6
+ 172 0130 FEFFFFEB 		bl	fread
+ 173              	.LVL17:
+  32:alpha_time.c  ****      if(result != 512){
+ 174              		.loc 1 32 0
+ 175 0134 020C50E3 		cmp	r0, #512
+ 176 0138 0900000A 		beq	.L6
+  33:alpha_time.c  ****        fprintf(stderr, "Error with foreImage\n");
+ 177              		.loc 1 33 0
+ 178 013c 00E000E3 		movw	lr, #:lower16:stderr
+ 179 0140 000000E3 		movw	r0, #:lower16:.LC4
+ 180              	.LVL18:
+ 181 0144 00E040E3 		movt	lr, #:upper16:stderr
+ 182 0148 000040E3 		movt	r0, #:upper16:.LC4
+ 183 014c 0110A0E3 		mov	r1, #1
+ 184 0150 1520A0E3 		mov	r2, #21
+ 185 0154 00309EE5 		ldr	r3, [lr, #0]
+ 186 0158 FEFFFFEB 		bl	fwrite
+  34:alpha_time.c  ****        return 4;
+ 187              		.loc 1 34 0
+ 188 015c 0400A0E1 		mov	r0, r4
+ 189 0160 B5FFFFEA 		b	.L3
+ 190              	.LVL19:
+ 191              	.L6:
+  36:alpha_time.c  ****      gettimeofday(&oldTv, NULL);
+ 192              		.loc 1 36 0
+ 193 0164 0010A0E3 		mov	r1, #0
+ 194 0168 08008DE2 		add	r0, sp, #8
+ 195              	.LVL20:
+ 196 016c FEFFFFEB 		bl	gettimeofday
+ 197              	.LVL21:
+ 198 0170 003000E3 		movw	r3, #:lower16:newImage
+ 199 0174 003040E3 		movt	r3, #:upper16:newImage
+ 200 0178 001000E3 		movw	r1, #:lower16:foreImage
+ 201 017c 002000E3 		movw	r2, #:lower16:backImage
+  49:alpha_time.c  **** 
+  50:alpha_time.c  **** #define A(x) (((x) & 0xff000000) >> 24)
+  51:alpha_time.c  **** #define R(x) (((x) & 0x00ff0000) >> 16)
+  52:alpha_time.c  **** #define G(x) (((x) & 0x0000ff00) >> 8)
+  53:alpha_time.c  **** #define B(x) ((x) & 0x000000ff)
+  54:alpha_time.c  **** 
+  55:alpha_time.c  **** void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
+  56:alpha_time.c  **** {
+  57:alpha_time.c  ****   int x, y;
+  58:alpha_time.c  ****   for(y = 0; y < 512; y++){
+  59:alpha_time.c  ****      for(x = 0; x < 512; x++){
+  60:alpha_time.c  ****         int a_fg = A(fgImage[(y*512)+x]);
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+  64:alpha_time.c  ****         dstImage[(y*512)+x] =  0xff000000 |
+  65:alpha_time.c  ****                               (0x00ff0000 & (dst_r << 16)) |
+  66:alpha_time.c  ****                               (0x0000ff00 & (dst_g << 8)) |
+  67:alpha_time.c  ****                               (0x000000ff & (dst_b));
+  68:alpha_time.c  ****      }
+  69:alpha_time.c  ****   }
+  70:alpha_time.c  **** }
+  71:alpha_time.c  **** 
+  72:alpha_time.c  **** void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage)
+  73:alpha_time.c  **** {
+  74:alpha_time.c  ****   int y;
+  75:alpha_time.c  ****   for(y = 0; y < 262144; y++){
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 202              		.loc 1 76 0
+ 203 0180 778081F2 		vmov.i32	q4, #4294967272  @ v4si
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 204              		.loc 1 77 0
+ 205 0184 5F6087F3 		vmov.i32	q3, #255  @ v4si
+  36:alpha_time.c  ****      gettimeofday(&oldTv, NULL);
+ 206              		.loc 1 36 0
+ 207 0188 001040E3 		movt	r1, #:upper16:foreImage
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 208              		.loc 1 79 0
+ 209 018c 58A080F2 		vmov.i32	q5, #8  @ v4si
+  36:alpha_time.c  ****      gettimeofday(&oldTv, NULL);
+ 210              		.loc 1 36 0
+ 211 0190 002040E3 		movt	r2, #:upper16:backImage
+ 212              		.loc 1 79 0
+ 213 0194 7700C0F2 		vmov.i32	q8, #4294967288  @ v4si
+  11:alpha_time.c  **** int main(int argc, char**argv)
+ 214              		.loc 1 11 0
+ 215 0198 010683E2 		add	r0, r3, #1048576
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 216              		.loc 1 77 0
+ 217 019c 5F4487F3 		vmov.i32	q2, #16711680  @ v4si
+ 218 01a0 50C081F2 		vmov.i32	q6, #16  @ v4si
+ 219 01a4 7F2080F2 		vmov.i32	q1, #4294967280  @ v4si
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 220              		.loc 1 78 0
+ 221 01a8 5F0287F3 		vmov.i32	q0, #65280  @ v4si
+  80:alpha_time.c  **** 	dstImage[y] =  0xff000000 |
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 222              		.loc 1 81 0
+ 223 01ac 5FEC87F3 		vmov.i32	q7, #65535  @ v4si
+ 224              	.LVL22:
+ 225              	.L7:
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 226              		.loc 1 76 0
+ 227 01b0 04CBF1EC 		vldmia	r1!, {d28-d29}
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 228              		.loc 1 77 0
+ 229 01b4 D4A14CF2 		vand	q13, q14, q2
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 230              		.loc 1 78 0
+ 231 01b8 D0E14CF2 		vand	q15, q14, q0
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 232              		.loc 1 77 0
+ 233 01bc 046BF2EC 		vldmia	r2!, {d22-d23}
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 234              		.loc 1 76 0
+ 235 01c0 6C4468F3 		vshl.u32	q10, q14, q4
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 236              		.loc 1 77 0
+ 237 01c4 6A2462F2 		vshl.s32	q9, q13, q1
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 238              		.loc 1 78 0
+ 239 01c8 EEA460F2 		vshl.s32	q13, q15, q8
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 240              		.loc 1 79 0
+ 241 01cc D6814CF2 		vand	q12, q14, q3
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 242              		.loc 1 77 0
+ 243 01d0 D4E146F2 		vand	q15, q11, q2
+ 244 01d4 F22964F2 		vmul.i32	q9, q10, q9
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 245              		.loc 1 79 0
+ 246 01d8 F88964F2 		vmul.i32	q12, q10, q12
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 247              		.loc 1 78 0
+ 248 01dc D0C146F2 		vand	q14, q11, q0
+ 249 01e0 FAA964F2 		vmul.i32	q13, q10, q13
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 250              		.loc 1 77 0
+ 251 01e4 6EE462F2 		vshl.s32	q15, q15, q1
+ 252 01e8 644866F3 		vsub.i32	q10, q3, q10
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 253              		.loc 1 78 0
+ 254 01ec ECC460F2 		vshl.s32	q14, q14, q8
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 255              		.loc 1 79 0
+ 256 01f0 D66146F2 		vand	q11, q11, q3
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 257              		.loc 1 77 0
+ 258 01f4 EE2964F2 		vmla.i32	q9, q10, q15
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 259              		.loc 1 78 0
+ 260 01f8 ECA964F2 		vmla.i32	q13, q10, q14
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 261              		.loc 1 79 0
+ 262 01fc E68964F2 		vmla.i32	q12, q10, q11
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 263              		.loc 1 77 0
+ 264 0200 E22460F2 		vshl.s32	q9, q9, q8
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 265              		.loc 1 78 0
+ 266 0204 EAE460F2 		vshl.s32	q15, q13, q8
+ 267              		.loc 1 81 0
+ 268 0208 62446CF2 		vshl.s32	q10, q9, q6
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 269              		.loc 1 79 0
+ 270 020c E86460F2 		vshl.s32	q11, q12, q8
+  82:alpha_time.c  **** 						  (0x0000ff00 & (dst_g << 8)) |
+ 271              		.loc 1 82 0
+ 272 0210 6EC46AF2 		vshl.s32	q14, q15, q5
+ 273 0214 D68146F2 		vand	q12, q11, q3
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 274              		.loc 1 81 0
+ 275 0218 D46144F2 		vand	q11, q10, q2
+ 276 021c 5F87C7F3 		vorr.i32	q12, #4278190080
+ 277 0220 DE414CF2 		vand	q10, q14, q7
+ 278              		.loc 1 82 0
+ 279 0224 F62168F2 		vorr	q9, q12, q11
+ 280 0228 F4A162F2 		vorr	q13, q9, q10
+  80:alpha_time.c  **** 	dstImage[y] =  0xff000000 |
+ 281              		.loc 1 80 0
+ 282 022c 04ABE3EC 		vstmia	r3!, {d26-d27}
+ 283 0230 000053E1 		cmp	r3, r0
+ 284 0234 DDFFFF1A 		bne	.L7
+  38:alpha_time.c  ****      gettimeofday(&newTv, NULL);
+ 285              		.loc 1 38 0
+ 286 0238 0010A0E3 		mov	r1, #0
+ 287 023c 0D00A0E1 		mov	r0, sp
+ 288 0240 FEFFFFEB 		bl	gettimeofday
+  39:alpha_time.c  ****      fprintf(stdout, "Routine took %d microseconds\n", (int)(newTv.tv_usec - oldTv.tv_usec));
+ 289              		.loc 1 39 0
+ 290 0244 000000E3 		movw	r0, #:lower16:stdout
+ 291 0248 0C309DE5 		ldr	r3, [sp, #12]
+ 292 024c 000040E3 		movt	r0, #:upper16:stdout
+ 293 0250 04209DE5 		ldr	r2, [sp, #4]
+ 294 0254 001000E3 		movw	r1, #:lower16:.LC5
+ 295 0258 001040E3 		movt	r1, #:upper16:.LC5
+ 296 025c 000090E5 		ldr	r0, [r0, #0]
+ 297 0260 022063E0 		rsb	r2, r3, r2
+ 298 0264 FEFFFFEB 		bl	fprintf
+  40:alpha_time.c  ****      fwrite(newImage, 512*sizeof(int),512,outFile);
+ 299              		.loc 1 40 0
+ 300 0268 000000E3 		movw	r0, #:lower16:newImage
+ 301 026c 021BA0E3 		mov	r1, #2048
+ 302 0270 022CA0E3 		mov	r2, #512
+ 303 0274 0730A0E1 		mov	r3, r7
+ 304 0278 000040E3 		movt	r0, #:upper16:newImage
+ 305 027c FEFFFFEB 		bl	fwrite
+  41:alpha_time.c  ****      fclose(fgFile);
+ 306              		.loc 1 41 0
+ 307 0280 0600A0E1 		mov	r0, r6
+ 308 0284 FEFFFFEB 		bl	fclose
+  42:alpha_time.c  ****      fclose(bgFile);
+ 309              		.loc 1 42 0
+ 310 0288 0500A0E1 		mov	r0, r5
+ 311 028c FEFFFFEB 		bl	fclose
+  43:alpha_time.c  ****      fclose(outFile);
+ 312              		.loc 1 43 0
+ 313 0290 0700A0E1 		mov	r0, r7
+ 314 0294 FEFFFFEB 		bl	fclose
+  44:alpha_time.c  ****      return 0;
+ 315              		.loc 1 44 0
+ 316 0298 0000A0E3 		mov	r0, #0
+ 317 029c 66FFFFEA 		b	.L3
+ 318              		.cfi_endproc
+ 319              	.LFE11:
+ 321              		.align	2
+ 322              		.p2align 4,,15
+ 323              		.global	alphaBlend_c
+ 325              	alphaBlend_c:
+ 326              	.LFB12:
+  56:alpha_time.c  **** {
+ 327              		.loc 1 56 0
+ 328              		.cfi_startproc
+ 329              		@ args = 0, pretend = 0, frame = 16
+ 330              		@ frame_needed = 0, uses_anonymous_args = 0
+ 331              		@ link register save eliminated.
+ 332              	.LVL23:
+ 333 02a0 F00F2DE9 		stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp}
+ 334              	.LCFI3:
+ 335              		.cfi_def_cfa_offset 32
+ 336 02a4 108B2DED 		fstmfdd	sp!, {d8, d9, d10, d11, d12, d13, d14, d15}
+ 337              	.LCFI4:
+ 338              		.cfi_def_cfa_offset 96
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 339              		.loc 1 61 0
+ 340 02a8 5F6087F3 		vmov.i32	q3, #255  @ v4si
+  60:alpha_time.c  ****         int a_fg = A(fgImage[(y*512)+x]);
+ 341              		.loc 1 60 0
+ 342 02ac 77C081F2 		vmov.i32	q6, #4294967272  @ v4si
+ 343              		.cfi_offset 94, -40
+ 344              		.cfi_offset 92, -48
+ 345              		.cfi_offset 90, -56
+ 346              		.cfi_offset 88, -64
+ 347              		.cfi_offset 86, -72
+ 348              		.cfi_offset 84, -80
+ 349              		.cfi_offset 82, -88
+ 350              		.cfi_offset 80, -96
+ 351              		.cfi_offset 11, -4
+ 352              		.cfi_offset 10, -8
+ 353              		.cfi_offset 9, -12
+ 354              		.cfi_offset 8, -16
+ 355              		.cfi_offset 7, -20
+ 356              		.cfi_offset 6, -24
+ 357              		.cfi_offset 5, -28
+ 358              		.cfi_offset 4, -32
+  56:alpha_time.c  **** {
+ 359              		.loc 1 56 0
+ 360 02b0 10D04DE2 		sub	sp, sp, #16
+ 361              	.LCFI5:
+ 362              		.cfi_def_cfa_offset 112
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 363              		.loc 1 63 0
+ 364 02b4 58E080F2 		vmov.i32	q7, #8  @ v4si
+  55:alpha_time.c  **** void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
+ 365              		.loc 1 55 0
+ 366 02b8 01B0A0E1 		mov	fp, r1
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 367              		.loc 1 63 0
+ 368 02bc 7700C0F2 		vmov.i32	q8, #4294967288  @ v4si
+  55:alpha_time.c  **** void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
+ 369              		.loc 1 55 0
+ 370 02c0 04008DE5 		str	r0, [sp, #4]
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 371              		.loc 1 61 0
+ 372 02c4 5F4487F3 		vmov.i32	q2, #16711680  @ v4si
+  55:alpha_time.c  **** void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
+ 373              		.loc 1 55 0
+ 374 02c8 100082E2 		add	r0, r2, #16
+ 375              	.LVL24:
+ 376 02cc 021CA0E3 		mov	r1, #512
+ 377              	.LVL25:
+ 378 02d0 00208DE5 		str	r2, [sp, #0]
+ 379 02d4 08008DE5 		str	r0, [sp, #8]
+ 380 02d8 0C108DE5 		str	r1, [sp, #12]
+ 381              	.LVL26:
+ 382              	.L11:
+  55:alpha_time.c  **** void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
+ 383              		.loc 1 55 0 is_stmt 0 discriminator 1
+ 384 02dc 08309DE5 		ldr	r3, [sp, #8]
+ 385 02e0 04109DE5 		ldr	r1, [sp, #4]
+ 386 02e4 00C09DE5 		ldr	ip, [sp, #0]
+ 387 02e8 010053E1 		cmp	r3, r1
+ 388 02ec 100081E2 		add	r0, r1, #16
+ 389 02f0 0020A023 		movcs	r2, #0
+ 390 02f4 0120A033 		movcc	r2, #1
+ 391 02f8 0B0053E1 		cmp	r3, fp
+ 392 02fc 10108BE2 		add	r1, fp, #16
+ 393 0300 0030A023 		movcs	r3, #0
+ 394 0304 0130A033 		movcc	r3, #1
+ 395 0308 01005CE1 		cmp	ip, r1
+ 396 030c 01308383 		orrhi	r3, r3, #1
+ 397 0310 00005CE1 		cmp	ip, r0
+ 398 0314 01208283 		orrhi	r2, r2, #1
+  58:alpha_time.c  ****   for(y = 0; y < 512; y++){
+ 399              		.loc 1 58 0 is_stmt 1 discriminator 1
+ 400 0318 03C012E0 		ands	ip, r2, r3
+ 401 031c 0A009DE8 		ldmia	sp, {r1, r3}
+ 402 0320 0B20A0E1 		mov	r2, fp
+  55:alpha_time.c  **** void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
+ 403              		.loc 1 55 0 discriminator 1
+ 404 0324 0B50A001 		moveq	r5, fp
+ 405 0328 0160A001 		moveq	r6, r1
+ 406 032c 0340A001 		moveq	r4, r3
+  58:alpha_time.c  ****   for(y = 0; y < 512; y++){
+ 407              		.loc 1 58 0 discriminator 1
+ 408 0330 3600000A 		beq	.L12
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 409              		.loc 1 61 0
+ 410 0334 508081F2 		vmov.i32	q4, #16  @ v4si
+  55:alpha_time.c  **** void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
+ 411              		.loc 1 55 0
+ 412 0338 020B83E2 		add	r0, r3, #2048
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 413              		.loc 1 61 0
+ 414 033c 7F2080F2 		vmov.i32	q1, #4294967280  @ v4si
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 415              		.loc 1 62 0
+ 416 0340 5F0287F3 		vmov.i32	q0, #65280  @ v4si
+  65:alpha_time.c  ****                               (0x00ff0000 & (dst_r << 16)) |
+ 417              		.loc 1 65 0
+ 418 0344 5FAC87F3 		vmov.i32	q5, #65535  @ v4si
+ 419              	.LVL27:
+ 420              	.L14:
+  60:alpha_time.c  ****         int a_fg = A(fgImage[(y*512)+x]);
+ 421              		.loc 1 60 0 discriminator 2
+ 422 0348 8DCA63F4 		vld1.32	{q14}, [r3]!
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 423              		.loc 1 61 0 discriminator 2
+ 424 034c D4A14CF2 		vand	q13, q14, q2
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 425              		.loc 1 62 0 discriminator 2
+ 426 0350 D0E14CF2 		vand	q15, q14, q0
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 427              		.loc 1 61 0 discriminator 2
+ 428 0354 8D6A62F4 		vld1.32	{q11}, [r2]!
+  60:alpha_time.c  ****         int a_fg = A(fgImage[(y*512)+x]);
+ 429              		.loc 1 60 0 discriminator 2
+ 430 0358 6C446CF3 		vshl.u32	q10, q14, q6
+  64:alpha_time.c  ****         dstImage[(y*512)+x] =  0xff000000 |
+ 431              		.loc 1 64 0 discriminator 2
+ 432 035c 030050E1 		cmp	r0, r3
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 433              		.loc 1 61 0 discriminator 2
+ 434 0360 6A2462F2 		vshl.s32	q9, q13, q1
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 435              		.loc 1 62 0 discriminator 2
+ 436 0364 EEA460F2 		vshl.s32	q13, q15, q8
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 437              		.loc 1 63 0 discriminator 2
+ 438 0368 D6814CF2 		vand	q12, q14, q3
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 439              		.loc 1 61 0 discriminator 2
+ 440 036c D4E146F2 		vand	q15, q11, q2
+ 441 0370 F22964F2 		vmul.i32	q9, q10, q9
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 442              		.loc 1 63 0 discriminator 2
+ 443 0374 F88964F2 		vmul.i32	q12, q10, q12
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 444              		.loc 1 62 0 discriminator 2
+ 445 0378 D0C146F2 		vand	q14, q11, q0
+ 446 037c FAA964F2 		vmul.i32	q13, q10, q13
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 447              		.loc 1 61 0 discriminator 2
+ 448 0380 6EE462F2 		vshl.s32	q15, q15, q1
+ 449 0384 644866F3 		vsub.i32	q10, q3, q10
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 450              		.loc 1 62 0 discriminator 2
+ 451 0388 ECC460F2 		vshl.s32	q14, q14, q8
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 452              		.loc 1 63 0 discriminator 2
+ 453 038c D66146F2 		vand	q11, q11, q3
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 454              		.loc 1 61 0 discriminator 2
+ 455 0390 EE2964F2 		vmla.i32	q9, q10, q15
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 456              		.loc 1 62 0 discriminator 2
+ 457 0394 ECA964F2 		vmla.i32	q13, q10, q14
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 458              		.loc 1 63 0 discriminator 2
+ 459 0398 E68964F2 		vmla.i32	q12, q10, q11
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 460              		.loc 1 61 0 discriminator 2
+ 461 039c E22460F2 		vshl.s32	q9, q9, q8
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 462              		.loc 1 62 0 discriminator 2
+ 463 03a0 EAE460F2 		vshl.s32	q15, q13, q8
+  65:alpha_time.c  ****                               (0x00ff0000 & (dst_r << 16)) |
+ 464              		.loc 1 65 0 discriminator 2
+ 465 03a4 624468F2 		vshl.s32	q10, q9, q4
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 466              		.loc 1 63 0 discriminator 2
+ 467 03a8 E86460F2 		vshl.s32	q11, q12, q8
+  66:alpha_time.c  ****                               (0x0000ff00 & (dst_g << 8)) |
+ 468              		.loc 1 66 0 discriminator 2
+ 469 03ac 6EC46EF2 		vshl.s32	q14, q15, q7
+ 470 03b0 D68146F2 		vand	q12, q11, q3
+  65:alpha_time.c  ****                               (0x00ff0000 & (dst_r << 16)) |
+ 471              		.loc 1 65 0 discriminator 2
+ 472 03b4 D46144F2 		vand	q11, q10, q2
+ 473 03b8 5F87C7F3 		vorr.i32	q12, #4278190080
+ 474 03bc DA414CF2 		vand	q10, q14, q5
+  66:alpha_time.c  ****                               (0x0000ff00 & (dst_g << 8)) |
+ 475              		.loc 1 66 0 discriminator 2
+ 476 03c0 F62168F2 		vorr	q9, q12, q11
+ 477 03c4 F4A162F2 		vorr	q13, q9, q10
+  64:alpha_time.c  ****         dstImage[(y*512)+x] =  0xff000000 |
+ 478              		.loc 1 64 0 discriminator 2
+ 479 03c8 8DAA41F4 		vst1.32	{q13}, [r1]!
+ 480 03cc DDFFFF1A 		bne	.L14
+ 481              	.LVL28:
+ 482              	.L13:
+  58:alpha_time.c  ****   for(y = 0; y < 512; y++){
+ 483              		.loc 1 58 0
+ 484 03d0 0C309DE5 		ldr	r3, [sp, #12]
+  64:alpha_time.c  ****         dstImage[(y*512)+x] =  0xff000000 |
+ 485              		.loc 1 64 0
+ 486 03d4 02BB8BE2 		add	fp, fp, #2048
+ 487 03d8 00C09DE5 		ldr	ip, [sp, #0]
+  58:alpha_time.c  ****   for(y = 0; y < 512; y++){
+ 488              		.loc 1 58 0
+ 489 03dc 011053E2 		subs	r1, r3, #1
+  64:alpha_time.c  ****         dstImage[(y*512)+x] =  0xff000000 |
+ 490              		.loc 1 64 0
+ 491 03e0 08309DE5 		ldr	r3, [sp, #8]
+  58:alpha_time.c  ****   for(y = 0; y < 512; y++){
+ 492              		.loc 1 58 0
+ 493 03e4 0C108DE5 		str	r1, [sp, #12]
+  64:alpha_time.c  ****         dstImage[(y*512)+x] =  0xff000000 |
+ 494              		.loc 1 64 0
+ 495 03e8 04008DE5 		str	r0, [sp, #4]
+ 496 03ec 021B83E2 		add	r1, r3, #2048
+ 497 03f0 020B8CE2 		add	r0, ip, #2048
+ 498 03f4 08108DE5 		str	r1, [sp, #8]
+ 499 03f8 00008DE5 		str	r0, [sp, #0]
+  58:alpha_time.c  ****   for(y = 0; y < 512; y++){
+ 500              		.loc 1 58 0
+ 501 03fc B6FFFF1A 		bne	.L11
+  70:alpha_time.c  **** }
+ 502              		.loc 1 70 0
+ 503 0400 10D08DE2 		add	sp, sp, #16
+ 504 0404 108BBDEC 		fldmfdd	sp!, {d8, d9, d10, d11, d12, d13, d14, d15}
+ 505 0408 F00FBDE8 		ldmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp}
+ 506 040c 1EFF2FE1 		bx	lr
+ 507              		.p2align 4
+ 508              	.L12:
+ 509              	.LBB7:
+  60:alpha_time.c  ****         int a_fg = A(fgImage[(y*512)+x]);
+ 510              		.loc 1 60 0
+ 511 0410 042094E4 		ldr	r2, [r4], #4
+ 512              	.LBE7:
+  59:alpha_time.c  ****      for(x = 0; x < 512; x++){
+ 513              		.loc 1 59 0
+ 514 0414 01C08CE2 		add	ip, ip, #1
+ 515              	.LBB8:
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 516              		.loc 1 61 0
+ 517 0418 040095E4 		ldr	r0, [r5], #4
+ 518              	.LBE8:
+  59:alpha_time.c  ****      for(x = 0; x < 512; x++){
+ 519              		.loc 1 59 0
+ 520 041c 020C5CE3 		cmp	ip, #512
+ 521              	.LBB9:
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 522              		.loc 1 61 0
+ 523 0420 52A8E7E7 		ubfx	sl, r2, #16, #8
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 524              		.loc 1 63 0
+ 525 0424 FF8002E2 		and	r8, r2, #255
+  60:alpha_time.c  ****         int a_fg = A(fgImage[(y*512)+x]);
+ 526              		.loc 1 60 0
+ 527 0428 223CA0E1 		mov	r3, r2, lsr #24
+ 528              	.LVL29:
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 529              		.loc 1 61 0
+ 530 042c 5098E7E7 		ubfx	r9, r0, #16, #8
+ 531 0430 FF1063E2 		rsb	r1, r3, #255
+ 532              	.LVL30:
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 533              		.loc 1 63 0
+ 534 0434 FF7000E2 		and	r7, r0, #255
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 535              		.loc 1 61 0
+ 536 0438 9A030AE0 		mul	sl, sl, r3
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 537              		.loc 1 62 0
+ 538 043c 5224E7E7 		ubfx	r2, r2, #8, #8
+  61:alpha_time.c  ****         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 539              		.loc 1 61 0
+ 540 0440 99A12AE0 		mla	sl, r9, r1, sl
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 541              		.loc 1 62 0
+ 542 0444 5004E7E7 		ubfx	r0, r0, #8, #8
+  63:alpha_time.c  ****         int dst_b = ((B(fgImage[(y*512)+x]) * a_fg) + (B(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 543              		.loc 1 63 0
+ 544 0448 980308E0 		mul	r8, r8, r3
+ 545 044c 978128E0 		mla	r8, r7, r1, r8
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 546              		.loc 1 62 0
+ 547 0450 920302E0 		mul	r2, r2, r3
+  65:alpha_time.c  ****                               (0x00ff0000 & (dst_r << 16)) |
+ 548              		.loc 1 65 0
+ 549 0454 0AA4A0E1 		mov	sl, sl, asl #8
+  62:alpha_time.c  ****         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
+ 550              		.loc 1 62 0
+ 551 0458 902121E0 		mla	r1, r0, r1, r2
+  66:alpha_time.c  ****                               (0x0000ff00 & (dst_g << 8)) |
+ 552              		.loc 1 66 0
+ 553 045c 5884E7E7 		ubfx	r8, r8, #8, #8
+  65:alpha_time.c  ****                               (0x00ff0000 & (dst_r << 16)) |
+ 554              		.loc 1 65 0
+ 555 0460 FF8488E3 		orr	r8, r8, #-16777216
+ 556 0464 FFA80AE2 		and	sl, sl, #16711680
+  66:alpha_time.c  ****                               (0x0000ff00 & (dst_g << 8)) |
+ 557              		.loc 1 66 0
+ 558 0468 0A2088E1 		orr	r2, r8, sl
+  65:alpha_time.c  ****                               (0x00ff0000 & (dst_r << 16)) |
+ 559              		.loc 1 65 0
+ 560 046c FF3C01E2 		and	r3, r1, #65280
+ 561              	.LVL31:
+  66:alpha_time.c  ****                               (0x0000ff00 & (dst_g << 8)) |
+ 562              		.loc 1 66 0
+ 563 0470 032082E1 		orr	r2, r2, r3
+  64:alpha_time.c  ****         dstImage[(y*512)+x] =  0xff000000 |
+ 564              		.loc 1 64 0
+ 565 0474 042086E4 		str	r2, [r6], #4
+ 566              	.LBE9:
+  59:alpha_time.c  ****      for(x = 0; x < 512; x++){
+ 567              		.loc 1 59 0
+ 568 0478 E4FFFF1A 		bne	.L12
+ 569 047c 04C09DE5 		ldr	ip, [sp, #4]
+ 570              	.LVL32:
+ 571 0480 020B8CE2 		add	r0, ip, #2048
+ 572 0484 D1FFFFEA 		b	.L13
+ 573              		.cfi_endproc
+ 574              	.LFE12:
+ 576              		.align	2
+ 577 0488 00F020E3 		.p2align 4,,15
+ 577      00F020E3 
+ 578              		.global	alphaBlend_flat
+ 580              	alphaBlend_flat:
+ 581              	.LFB13:
+  73:alpha_time.c  **** {
+ 582              		.loc 1 73 0
+ 583              		.cfi_startproc
+ 584              		@ args = 0, pretend = 0, frame = 0
+ 585              		@ frame_needed = 0, uses_anonymous_args = 0
+ 586              		@ link register save eliminated.
+ 587              	.LVL33:
+  72:alpha_time.c  **** void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage)
+ 588              		.loc 1 72 0
+ 589 0490 103082E2 		add	r3, r2, #16
+ 590 0494 00C0A0E1 		mov	ip, r0
+ 591 0498 000053E1 		cmp	r3, r0
+  73:alpha_time.c  **** {
+ 592              		.loc 1 73 0
+ 593 049c F00F2DE9 		stmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp}
+ 594              	.LCFI6:
+ 595              		.cfi_def_cfa_offset 32
+ 596 04a0 108B2DED 		fstmfdd	sp!, {d8, d9, d10, d11, d12, d13, d14, d15}
+ 597              	.LCFI7:
+ 598              		.cfi_def_cfa_offset 96
+  72:alpha_time.c  **** void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage)
+ 599              		.loc 1 72 0
+ 600 04a4 0050A023 		movcs	r5, #0
+ 601              		.cfi_offset 94, -40
+ 602              		.cfi_offset 92, -48
+ 603              		.cfi_offset 90, -56
+ 604              		.cfi_offset 88, -64
+ 605              		.cfi_offset 86, -72
+ 606              		.cfi_offset 84, -80
+ 607              		.cfi_offset 82, -88
+ 608              		.cfi_offset 80, -96
+ 609              		.cfi_offset 11, -4
+ 610              		.cfi_offset 10, -8
+ 611              		.cfi_offset 9, -12
+ 612              		.cfi_offset 8, -16
+ 613              		.cfi_offset 7, -20
+ 614              		.cfi_offset 6, -24
+ 615              		.cfi_offset 5, -28
+ 616              		.cfi_offset 4, -32
+ 617 04a8 0150A033 		movcc	r5, #1
+ 618 04ac 107080E2 		add	r7, r0, #16
+ 619 04b0 106081E2 		add	r6, r1, #16
+ 620 04b4 070052E1 		cmp	r2, r7
+ 621 04b8 01508583 		orrhi	r5, r5, #1
+ 622 04bc 030051E1 		cmp	r1, r3
+ 623 04c0 06005291 		cmpls	r2, r6
+  73:alpha_time.c  **** {
+ 624              		.loc 1 73 0
+ 625 04c4 02B0A0E1 		mov	fp, r2
+  72:alpha_time.c  **** void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage)
+ 626              		.loc 1 72 0
+ 627 04c8 0030A093 		movls	r3, #0
+ 628 04cc 0130A083 		movhi	r3, #1
+ 629 04d0 0140A0E1 		mov	r4, r1
+ 630 04d4 033015E0 		ands	r3, r5, r3
+ 631 04d8 3000000A 		beq	.L24
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 632              		.loc 1 76 0
+ 633 04dc 778081F2 		vmov.i32	q4, #4294967272  @ v4si
+  72:alpha_time.c  **** void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage)
+ 634              		.loc 1 72 0
+ 635 04e0 013680E2 		add	r3, r0, #1048576
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 636              		.loc 1 77 0
+ 637 04e4 5F6087F3 		vmov.i32	q3, #255  @ v4si
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 638              		.loc 1 79 0
+ 639 04e8 58A080F2 		vmov.i32	q5, #8  @ v4si
+ 640 04ec 7700C0F2 		vmov.i32	q8, #4294967288  @ v4si
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 641              		.loc 1 77 0
+ 642 04f0 5F4487F3 		vmov.i32	q2, #16711680  @ v4si
+ 643 04f4 50C081F2 		vmov.i32	q6, #16  @ v4si
+ 644 04f8 7F2080F2 		vmov.i32	q1, #4294967280  @ v4si
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 645              		.loc 1 78 0
+ 646 04fc 5F0287F3 		vmov.i32	q0, #65280  @ v4si
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 647              		.loc 1 81 0
+ 648 0500 5FEC87F3 		vmov.i32	q7, #65535  @ v4si
+ 649              	.LVL34:
+ 650              	.L22:
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 651              		.loc 1 76 0 discriminator 2
+ 652 0504 8DCA6CF4 		vld1.32	{q14}, [ip]!
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 653              		.loc 1 77 0 discriminator 2
+ 654 0508 D4A14CF2 		vand	q13, q14, q2
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 655              		.loc 1 78 0 discriminator 2
+ 656 050c D0E14CF2 		vand	q15, q14, q0
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 657              		.loc 1 77 0 discriminator 2
+ 658 0510 8D6A64F4 		vld1.32	{q11}, [r4]!
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 659              		.loc 1 76 0 discriminator 2
+ 660 0514 6C4468F3 		vshl.u32	q10, q14, q4
+  80:alpha_time.c  **** 	dstImage[y] =  0xff000000 |
+ 661              		.loc 1 80 0 discriminator 2
+ 662 0518 03005CE1 		cmp	ip, r3
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 663              		.loc 1 77 0 discriminator 2
+ 664 051c 6A2462F2 		vshl.s32	q9, q13, q1
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 665              		.loc 1 78 0 discriminator 2
+ 666 0520 EEA460F2 		vshl.s32	q13, q15, q8
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 667              		.loc 1 79 0 discriminator 2
+ 668 0524 D6814CF2 		vand	q12, q14, q3
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 669              		.loc 1 77 0 discriminator 2
+ 670 0528 D4E146F2 		vand	q15, q11, q2
+ 671 052c F22964F2 		vmul.i32	q9, q10, q9
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 672              		.loc 1 79 0 discriminator 2
+ 673 0530 F88964F2 		vmul.i32	q12, q10, q12
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 674              		.loc 1 78 0 discriminator 2
+ 675 0534 D0C146F2 		vand	q14, q11, q0
+ 676 0538 FAA964F2 		vmul.i32	q13, q10, q13
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 677              		.loc 1 77 0 discriminator 2
+ 678 053c 6EE462F2 		vshl.s32	q15, q15, q1
+ 679 0540 644866F3 		vsub.i32	q10, q3, q10
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 680              		.loc 1 78 0 discriminator 2
+ 681 0544 ECC460F2 		vshl.s32	q14, q14, q8
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 682              		.loc 1 79 0 discriminator 2
+ 683 0548 D66146F2 		vand	q11, q11, q3
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 684              		.loc 1 77 0 discriminator 2
+ 685 054c EE2964F2 		vmla.i32	q9, q10, q15
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 686              		.loc 1 78 0 discriminator 2
+ 687 0550 ECA964F2 		vmla.i32	q13, q10, q14
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 688              		.loc 1 79 0 discriminator 2
+ 689 0554 E68964F2 		vmla.i32	q12, q10, q11
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 690              		.loc 1 77 0 discriminator 2
+ 691 0558 E22460F2 		vshl.s32	q9, q9, q8
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 692              		.loc 1 78 0 discriminator 2
+ 693 055c EAE460F2 		vshl.s32	q15, q13, q8
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 694              		.loc 1 81 0 discriminator 2
+ 695 0560 62446CF2 		vshl.s32	q10, q9, q6
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 696              		.loc 1 79 0 discriminator 2
+ 697 0564 E86460F2 		vshl.s32	q11, q12, q8
+ 698              		.loc 1 82 0 discriminator 2
+ 699 0568 6EC46AF2 		vshl.s32	q14, q15, q5
+ 700 056c D68146F2 		vand	q12, q11, q3
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 701              		.loc 1 81 0 discriminator 2
+ 702 0570 D46144F2 		vand	q11, q10, q2
+ 703 0574 5F87C7F3 		vorr.i32	q12, #4278190080
+ 704 0578 DE414CF2 		vand	q10, q14, q7
+ 705              		.loc 1 82 0 discriminator 2
+ 706 057c F62168F2 		vorr	q9, q12, q11
+ 707 0580 F4A162F2 		vorr	q13, q9, q10
+  80:alpha_time.c  **** 	dstImage[y] =  0xff000000 |
+ 708              		.loc 1 80 0 discriminator 2
+ 709 0584 8DAA42F4 		vst1.32	{q13}, [r2]!
+ 710 0588 DDFFFF1A 		bne	.L22
+ 711              	.LVL35:
+ 712              	.L20:
+  83:alpha_time.c  **** 						  (0x000000ff & (dst_b));
+  84:alpha_time.c  ****   }
+  85:alpha_time.c  **** }
+ 713              		.loc 1 85 0
+ 714 058c 108BBDEC 		fldmfdd	sp!, {d8, d9, d10, d11, d12, d13, d14, d15}
+ 715 0590 F00FBDE8 		ldmfd	sp!, {r4, r5, r6, r7, r8, r9, sl, fp}
+ 716 0594 1EFF2FE1 		bx	lr
+ 717 0598 00F020E3 		.p2align 4
+ 717      00F020E3 
+ 718              	.L24:
+ 719              	.LBB10:
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 720              		.loc 1 76 0
+ 721 05a0 034090E7 		ldr	r4, [r0, r3]
+  80:alpha_time.c  **** 	dstImage[y] =  0xff000000 |
+ 722              		.loc 1 80 0
+ 723 05a4 042083E2 		add	r2, r3, #4
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 724              		.loc 1 77 0
+ 725 05a8 036091E7 		ldr	r6, [r1, r3]
+ 726 05ac 54A8E7E7 		ubfx	sl, r4, #16, #8
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 727              		.loc 1 79 0
+ 728 05b0 FF8004E2 		and	r8, r4, #255
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 729              		.loc 1 76 0
+ 730 05b4 24CCA0E1 		mov	ip, r4, lsr #24
+ 731              	.LVL36:
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 732              		.loc 1 77 0
+ 733 05b8 5698E7E7 		ubfx	r9, r6, #16, #8
+ 734 05bc FF506CE2 		rsb	r5, ip, #255
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 735              		.loc 1 79 0
+ 736 05c0 FF7006E2 		and	r7, r6, #255
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 737              		.loc 1 77 0
+ 738 05c4 9A0C0AE0 		mul	sl, sl, ip
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 739              		.loc 1 78 0
+ 740 05c8 5444E7E7 		ubfx	r4, r4, #8, #8
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 741              		.loc 1 77 0
+ 742 05cc 99A52AE0 		mla	sl, r9, r5, sl
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 743              		.loc 1 78 0
+ 744 05d0 5664E7E7 		ubfx	r6, r6, #8, #8
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 745              		.loc 1 79 0
+ 746 05d4 980C08E0 		mul	r8, r8, ip
+ 747 05d8 978529E0 		mla	r9, r7, r5, r8
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 748              		.loc 1 78 0
+ 749 05dc 940C0CE0 		mul	ip, r4, ip
+ 750              	.LVL37:
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 751              		.loc 1 81 0
+ 752 05e0 0AA4A0E1 		mov	sl, sl, asl #8
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 753              		.loc 1 78 0
+ 754 05e4 96C528E0 		mla	r8, r6, r5, ip
+  82:alpha_time.c  **** 						  (0x0000ff00 & (dst_g << 8)) |
+ 755              		.loc 1 82 0
+ 756 05e8 5944E7E7 		ubfx	r4, r9, #8, #8
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 757              		.loc 1 81 0
+ 758 05ec FF7484E3 		orr	r7, r4, #-16777216
+ 759 05f0 FF680AE2 		and	r6, sl, #16711680
+  82:alpha_time.c  **** 						  (0x0000ff00 & (dst_g << 8)) |
+ 760              		.loc 1 82 0
+ 761 05f4 06C087E1 		orr	ip, r7, r6
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 762              		.loc 1 81 0
+ 763 05f8 FF5C08E2 		and	r5, r8, #65280
+  82:alpha_time.c  **** 						  (0x0000ff00 & (dst_g << 8)) |
+ 764              		.loc 1 82 0
+ 765 05fc 05908CE1 		orr	r9, ip, r5
+  80:alpha_time.c  **** 	dstImage[y] =  0xff000000 |
+ 766              		.loc 1 80 0
+ 767 0600 03908BE7 		str	r9, [fp, r3]
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 768              		.loc 1 76 0
+ 769 0604 024090E7 		ldr	r4, [r0, r2]
+  80:alpha_time.c  **** 	dstImage[y] =  0xff000000 |
+ 770              		.loc 1 80 0
+ 771 0608 083083E2 		add	r3, r3, #8
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 772              		.loc 1 77 0
+ 773 060c 026091E7 		ldr	r6, [r1, r2]
+ 774              	.LBE10:
+  75:alpha_time.c  ****   for(y = 0; y < 262144; y++){
+ 775              		.loc 1 75 0
+ 776 0610 010653E3 		cmp	r3, #1048576
+ 777              	.LBB11:
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 778              		.loc 1 77 0
+ 779 0614 54A8E7E7 		ubfx	sl, r4, #16, #8
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 780              		.loc 1 79 0
+ 781 0618 FF8004E2 		and	r8, r4, #255
+  76:alpha_time.c  **** 	int a_fg = A(fgImage[y]);
+ 782              		.loc 1 76 0
+ 783 061c 24CCA0E1 		mov	ip, r4, lsr #24
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 784              		.loc 1 77 0
+ 785 0620 5698E7E7 		ubfx	r9, r6, #16, #8
+ 786 0624 FF506CE2 		rsb	r5, ip, #255
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 787              		.loc 1 79 0
+ 788 0628 FF7006E2 		and	r7, r6, #255
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 789              		.loc 1 77 0
+ 790 062c 9A0C0AE0 		mul	sl, sl, ip
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 791              		.loc 1 78 0
+ 792 0630 5444E7E7 		ubfx	r4, r4, #8, #8
+  77:alpha_time.c  **** 	int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+ 793              		.loc 1 77 0
+ 794 0634 99A52AE0 		mla	sl, r9, r5, sl
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 795              		.loc 1 78 0
+ 796 0638 5664E7E7 		ubfx	r6, r6, #8, #8
+  79:alpha_time.c  **** 	int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
+ 797              		.loc 1 79 0
+ 798 063c 980C08E0 		mul	r8, r8, ip
+ 799 0640 978527E0 		mla	r7, r7, r5, r8
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 800              		.loc 1 78 0
+ 801 0644 940C04E0 		mul	r4, r4, ip
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 802              		.loc 1 81 0
+ 803 0648 0AA4A0E1 		mov	sl, sl, asl #8
+  78:alpha_time.c  **** 	int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+ 804              		.loc 1 78 0
+ 805 064c 96452CE0 		mla	ip, r6, r5, r4
+  82:alpha_time.c  **** 						  (0x0000ff00 & (dst_g << 8)) |
+ 806              		.loc 1 82 0
+ 807 0650 5754E7E7 		ubfx	r5, r7, #8, #8
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 808              		.loc 1 81 0
+ 809 0654 FF7485E3 		orr	r7, r5, #-16777216
+ 810 0658 FFA80AE2 		and	sl, sl, #16711680
+  82:alpha_time.c  **** 						  (0x0000ff00 & (dst_g << 8)) |
+ 811              		.loc 1 82 0
+ 812 065c 0A7087E1 		orr	r7, r7, sl
+  81:alpha_time.c  **** 						  (0x00ff0000 & (dst_r << 16)) |
+ 813              		.loc 1 81 0
+ 814 0660 FF5C0CE2 		and	r5, ip, #65280
+  82:alpha_time.c  **** 						  (0x0000ff00 & (dst_g << 8)) |
+ 815              		.loc 1 82 0
+ 816 0664 055087E1 		orr	r5, r7, r5
+  80:alpha_time.c  **** 	dstImage[y] =  0xff000000 |
+ 817              		.loc 1 80 0
+ 818 0668 02508BE7 		str	r5, [fp, r2]
+ 819              	.LBE11:
+  75:alpha_time.c  ****   for(y = 0; y < 262144; y++){
+ 820              		.loc 1 75 0
+ 821 066c CBFFFF1A 		bne	.L24
+ 822 0670 C5FFFFEA 		b	.L20
+ 823              		.cfi_endproc
+ 824              	.LFE13:
+ 826              		.comm	backImage,1048576,16
+ 827              		.comm	foreImage,1048576,16
+ 828              		.comm	newImage,1048576,16
+ 829              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 830              		.align	2
+ 831              	.LC0:
+ 832 0000 55736167 		.ascii	"Usage:%s foreground background outFile\012\000"
+ 832      653A2573 
+ 832      20666F72 
+ 832      6567726F 
+ 832      756E6420 
+ 833              	.LC1:
+ 834 0028 726200   		.ascii	"rb\000"
+ 835 002b 00       		.space	1
+ 836              	.LC2:
+ 837 002c 776200   		.ascii	"wb\000"
+ 838 002f 00       		.space	1
+ 839              	.LC3:
+ 840 0030 4572726F 		.ascii	"Error with backImage\012\000"
+ 840      72207769 
+ 840      74682062 
+ 840      61636B49 
+ 840      6D616765 
+ 841 0046 0000     		.space	2
+ 842              	.LC4:
+ 843 0048 4572726F 		.ascii	"Error with foreImage\012\000"
+ 843      72207769 
+ 843      74682066 
+ 843      6F726549 
+ 843      6D616765 
+ 844 005e 0000     		.space	2
+ 845              	.LC5:
+ 846 0060 526F7574 		.ascii	"Routine took %d microseconds\012\000"
+ 846      696E6520 
+ 846      746F6F6B 
+ 846      20256420 
+ 846      6D696372 
+ 847 007e 0000     		.space	2
+ 848              	.LC6:
+ 849 0080 50726F62 		.ascii	"Problem opening a file\012\000"
+ 849      6C656D20 
+ 849      6F70656E 
+ 849      696E6720 
+ 849      61206669 
+ 850              		.text
+ 851              	.Letext0:
