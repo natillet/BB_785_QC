@@ -1,7 +1,7 @@
 PROJ_NAME = qc_proj
 CC = gcc #arm-linux-gnueabi-gcc
 VECTFLAGS = -ftree-vectorize -ffast-math -fsingle-precision-constant -mvectorize-with-neon-quad #-ftree-vectorizer-verbose=6
-CFLAGS = -Wall -O3 -march=armv7-a -mcpu=cortex-a8  -mfloat-abi=softfp -mfpu=neon $(VECTFLAGS) -funroll-loops 
+CFLAGS = -Wall -g -O3 -march=armv7-a -mcpu=cortex-a8  -mfloat-abi=softfp -mfpu=neon $(VECTFLAGS) -funroll-loops 
 LIBS = -lm -lrt
 OBJFILES := $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.s,%.o,$(wildcard *.s))
 $(PROJ_NAME): $(OBJFILES) 
@@ -12,6 +12,6 @@ $(PROJ_NAME): $(OBJFILES)
 %.o: %.s
 	$(CC) $(CFLAGS) -c -o $@ $<
 %.lst: %.c
-	$(CC) -g $(CFLAGS) -Wa,-adhln $(LIBS) $< > $@
+	$(CC) $(CFLAGS) -Wa,-adhln $(LIBS) $< > $@
 clean:
 	rm -f *.o *.lst
