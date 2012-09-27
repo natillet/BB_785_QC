@@ -1,12 +1,20 @@
+#include <stdio.h>
+#include <sys/time.h>
+#include "NE10_types.h"
+
+extern ne10_result_t alphablend_neon(ne10_int32_t * dst, ne10_int32_t * src1, ne10_int32_t * src2);
 void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage);
 void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage);
 
-#include <stdio.h>
-#include <sys/time.h>
-
+#ifndef NEON
 int backImage[512 * 512];
 int foreImage[512 * 512];
 int newImage[512 * 512];
+#else
+ne10_int32_t backImage[512 * 512];
+ne10_int32_t foreImage[512 * 512];
+ne10_int32_t newImage[512 * 512];
+#endif
 
 int main(int argc, char**argv)
 {
@@ -34,7 +42,13 @@ int main(int argc, char**argv)
        return 4;
      }
      gettimeofday(&oldTv, NULL);
+#ifdef ORIGINAL
      alphaBlend_flat(&foreImage[0], &backImage[0], &newImage[0]);
+#elif FLAT
+     alphaBlend_flat(&foreImage[0], &backImage[0], &newImage[0]);
+#elif NEON
+	 alphablend_neon(&foreImage[0], &backImage[0], &newImage[0]);
+#endif
      gettimeofday(&newTv, NULL);
      fprintf(stdout, "Routine took %d microseconds\n", (int)(newTv.tv_usec - oldTv.tv_usec));
      fwrite(newImage, 512*sizeof(int),512,outFile);
