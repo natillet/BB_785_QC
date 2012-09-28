@@ -68,6 +68,8 @@ alphablend_neon:
 		vshr.u32        q2, q2, #24			@ $ >> 24 			= a_fg
 		vsub.i32        q3, q15, q2			@ 255 - a_fg
 @		int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
+@		int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
+@		int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
 @ NOTE: 256 = 2^8! Use right shift to divide!
 		vand            q4, q0, q13			@ fgImage & 0x00ff0000
 		vshr.u32        q4, q4, #16			@ $ >> 16
@@ -77,38 +79,38 @@ alphablend_neon:
 		vmul.i32        q5, q3, q5			@ $ * (255 - a_fg) 	= (R(bgImage[y]) * (255-a_fg))
 		vadd.i32        q4, q4, q5			@ ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))
 		vshr.u32        q4, q4, #8			@ $ / 256			= dst_r
-@		int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;		
-		vand            q5, q0, q14			@ fgImage & 0x0000ff00
-		vshr.u32        q5, q5, #8			@ $ >> 16
-		vmul.i32        q5, q2, q5			@ $ * a_fg 			= G(fgImage[y]) * a_fg)
-		vand            q6, q1, q14			@ bgImage & 0x0000ff00
+		
+		vand            q6, q0, q14			@ fgImage & 0x0000ff00
 		vshr.u32        q6, q6, #8			@ $ >> 16
-		vmul.i32        q6, q3, q6			@ $ * (255 - a_fg) 	= (G(bgImage[y]) * (255-a_fg))
-		vadd.i32        q5, q5, q6			@ ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))
-		vshr.u32        q5, q5, #8			@ $ / 256			= dst_g
-@		int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
-		vand            q6, q0, q15			@ fgImage & 0x000000ff
-		vmul.i32        q6, q2, q6			@ $ * a_fg 			= B(fgImage[y]) * a_fg)
-		vand            q7, q1, q15			@ bgImage & 0x000000ff
-		vmul.i32        q7, q3, q7			@ $ * (255 - a_fg) 	= (B(bgImage[y]) * (255-a_fg))
-		vadd.i32        q6, q6, q7			@ ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))
-		vshr.u32        q6, q6, #8			@ $ / 256			= dst_b
+		vmul.i32        q6, q2, q6			@ $ * a_fg 			= G(fgImage[y]) * a_fg)
+		vand            q7, q1, q14			@ bgImage & 0x0000ff00
+		vshr.u32        q7, q7, #8			@ $ >> 16
+		vmul.i32        q7, q3, q7			@ $ * (255 - a_fg) 	= (G(bgImage[y]) * (255-a_fg))
+		vadd.i32        q6, q6, q7			@ ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))
+		vshr.u32        q6, q6, #8			@ $ / 256			= dst_g
+		
+		vand            q8, q0, q15			@ fgImage & 0x000000ff
+		vmul.i32        q8, q2, q8			@ $ * a_fg 			= B(fgImage[y]) * a_fg)
+		vand            q9, q1, q15			@ bgImage & 0x000000ff
+		vmul.i32        q9, q3, q9			@ $ * (255 - a_fg) 	= (B(bgImage[y]) * (255-a_fg))
+		vadd.i32        q8, q8, q9			@ ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))
+		vshr.u32        q8, q8, #8			@ $ / 256			= dst_b
 @		dstImage[y] =  0xff000000 |
 @					  (0x00ff0000 & (dst_r << 16)) |
 @					  (0x0000ff00 & (dst_g << 8)) |
 @					  (0x000000ff & (dst_b));
 		vshl.u32        q4, q4, #16			@ (dst_r << 16)
 		vand            q4, q4, q13			@ (0x00ff0000 & $)
-		vshl.u32        q5, q5, #8			@ (dst_g << 8)
-		vand            q5, q5, q14			@ (0x0000ff00 & $)
-		vand            q6, q6, q15			@ (0x000000ff & (dst_b))
+		vshl.u32        q6, q6, #8			@ (dst_g << 8)
+		vand            q6, q6, q14			@ (0x0000ff00 & $)
+		vand            q8, q8, q15			@ (0x000000ff & (dst_b))
 		vorr            q4, q4, q12			@
-		vorr            q5, q5, q4			@
-		vorr            q6, q6, q5			
+		vorr            q6, q6, q4			@
+		vorr            q8, q8, q6			
 
 @		vmul.i32        q6, q0, q1			@TEMP see if segfault with just this in the loop
 		@ store the result for the current set
-        vstmia          r0!, {d12-d13}			@ store dstImage from q6
+        vstmia          r0!, {d16-d17}			@ store dstImage from q6
 		cmp             r0, r3
 @ maybe unroll some loads to prolog so the pipe is filled during compare?
         bne             .L_mainloop_float             @ loop if r3 > 0, if we have at least another 4 floats
