@@ -54,9 +54,10 @@ alphablend_neon:
 		movt              r3, #16			@ upper 16 (0x10) => total 0x100000 = 1048576 => image is (512px x 512px) x 4B
 		add               r3, r3, r0 
 
-.L_mainloop_float:
         vldmia          r1!, {d0-d1}			@ load fgImage to q0
         vldmia          r2!, {d2-d3}			@ load bgImage to q1
+		
+.L_mainloop_float:
 
         @ calculate values for the next set
 @		#define A(x) (((x) & 0xff000000) >> 24)
@@ -109,7 +110,10 @@ alphablend_neon:
 		@ store the result for the current set
         vstmia          r0!, {d16-d17}			@ store dstImage from q6
 		cmp             r0, r3
-@ maybe unroll some loads to prolog so the pipe is filled during compare?
+		
+        vldmia          r1!, {d0-d1}			@ load fgImage to q0
+        vldmia          r2!, {d2-d3}			@ load bgImage to q1
+		
         bne             .L_mainloop_float             @ loop if r3 > 0, if we have at least another 4 floats
 
 
