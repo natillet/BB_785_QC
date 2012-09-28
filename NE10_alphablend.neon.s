@@ -42,20 +42,17 @@ alphablend_neon:
         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         push              {r3}				@ need a reg
-		mov               r3, #4278190080	@ 0xff000000
-		vdup.32           q12, r3
-		mov               r3, #16711680		@ 0x00ff0000
-		vdup.32           q13, r3
-		mov               r3, #65280		@ 0x0000ff00
-		vdup.32           q14, r3
-		mov               r3, #255			@ 0x000000ff
-		vdup.32           q15, r3
 		mov               r3, #0
 		movt              r3, #16			@ upper 16 (0x10) => total 0x100000 = 1048576 => image is (512px x 512px) x 4B
 		add               r3, r3, r0 
 
         vldmia          r1!, {d0-d1}			@ load fgImage to q0
         vldmia          r2!, {d2-d3}			@ load bgImage to q1
+		
+		vmov.i32          q12, #4278190080	@ 0xff000000
+		vmov.i32          q13, #16711680	@ 0x00ff0000
+		vmov.i32          q14, #65280		@ 0x0000ff00
+		vmov.i32          q15, #255			@ 0x000000ff
 		
 .L_mainloop_float:
 
