@@ -72,43 +72,40 @@ alphablend_neon:
 @		int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
 @ NOTE: 256 = 2^8! Use right shift to divide!
 		vand            q4, q0, q13			@ fgImage & 0x00ff0000
-		vshr.u32        q4, q4, #16			@ $ >> 16
-		vmul.i32        q4, q2, q4			@ $ * a_fg 			= R(fgImage[y]) * a_fg)
-		vand            q5, q1, q13			@ bgImage & 0x00ff0000
-		vshr.u32        q5, q5, #16			@ $ >> 16
-		vmul.i32        q5, q3, q5			@ $ * (255 - a_fg) 	= (R(bgImage[y]) * (255-a_fg))
-		vadd.i32        q4, q4, q5			@ ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))
-		vshr.u32        q4, q4, #8			@ $ / 256			= dst_r
-		
 		vand            q6, q0, q14			@ fgImage & 0x0000ff00
-		vshr.u32        q6, q6, #8			@ $ >> 16
-		vmul.i32        q6, q2, q6			@ $ * a_fg 			= G(fgImage[y]) * a_fg)
-		vand            q7, q1, q14			@ bgImage & 0x0000ff00
-		vshr.u32        q7, q7, #8			@ $ >> 16
-		vmul.i32        q7, q3, q7			@ $ * (255 - a_fg) 	= (G(bgImage[y]) * (255-a_fg))
-		vadd.i32        q6, q6, q7			@ ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))
-		vshr.u32        q6, q6, #8			@ $ / 256			= dst_g
-		
 		vand            q8, q0, q15			@ fgImage & 0x000000ff
+		vshr.u32        q4, q4, #16			@ $ >> 16
+		vshr.u32        q6, q6, #8			@ $ >> 16
+		vmul.i32        q4, q2, q4			@ $ * a_fg 			= R(fgImage[y]) * a_fg)
+		vmul.i32        q6, q2, q6			@ $ * a_fg 			= G(fgImage[y]) * a_fg)
 		vmul.i32        q8, q2, q8			@ $ * a_fg 			= B(fgImage[y]) * a_fg)
+		vand            q5, q1, q13			@ bgImage & 0x00ff0000
+		vand            q7, q1, q14			@ bgImage & 0x0000ff00
 		vand            q9, q1, q15			@ bgImage & 0x000000ff
+		vshr.u32        q5, q5, #16			@ $ >> 16
+		vshr.u32        q7, q7, #8			@ $ >> 16
+		vmul.i32        q5, q3, q5			@ $ * (255 - a_fg) 	= (R(bgImage[y]) * (255-a_fg))
+		vmul.i32        q7, q3, q7			@ $ * (255 - a_fg) 	= (G(bgImage[y]) * (255-a_fg))
 		vmul.i32        q9, q3, q9			@ $ * (255 - a_fg) 	= (B(bgImage[y]) * (255-a_fg))
+		vadd.i32        q4, q4, q5			@ ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))
+		vadd.i32        q6, q6, q7			@ ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))
 		vadd.i32        q8, q8, q9			@ ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))
+		vshr.u32        q4, q4, #8			@ $ / 256			= dst_r
+		vshr.u32        q6, q6, #8			@ $ / 256			= dst_g
 		vshr.u32        q8, q8, #8			@ $ / 256			= dst_b
 @		dstImage[y] =  0xff000000 |
 @					  (0x00ff0000 & (dst_r << 16)) |
 @					  (0x0000ff00 & (dst_g << 8)) |
 @					  (0x000000ff & (dst_b));
 		vshl.u32        q4, q4, #16			@ (dst_r << 16)
-		vand            q4, q4, q13			@ (0x00ff0000 & $)
 		vshl.u32        q6, q6, #8			@ (dst_g << 8)
-		vand            q6, q6, q14			@ (0x0000ff00 & $)
+		vand            q4, q4, q13			@ (0x00ff0000 & (dst_r << 16))
+		vand            q6, q6, q14			@ (0x0000ff00 & (dst_g << 8))
 		vand            q8, q8, q15			@ (0x000000ff & (dst_b))
 		vorr            q4, q4, q12			@
 		vorr            q6, q6, q4			@
 		vorr            q8, q8, q6			
 
-@		vmul.i32        q6, q0, q1			@TEMP see if segfault with just this in the loop
 		@ store the result for the current set
         vstmia          r0!, {d16-d17}			@ store dstImage from q6
 		cmp             r0, r3
@@ -122,65 +119,4 @@ alphablend_neon:
         pop               {r3}
         mov               r0, #0
         bx                lr
-
-
-@        push              {r4}
-@        and               r4, r3, #3          @ r4 = count % 4;
-@        sub               r3, r3, r4          @ count = count - r4; This is what's left to be processed after this loop
-@
-@        cbz               r3, .L_check_float
-@
-@        @ load the current set of values
-@        vld1.32         {q0}, [r1]!
-@        vld1.32         {q1}, [r2]!
-@        subs            r3, r3, #4          @ 4 for this set
-@
-@        @ calculate values for the current set
-@        vmul.f32        q3, q0, q1         @ q3 = q0 * q1
-@
-@        ble             .L_mainloopend_float
-@
-@.L_mainloop_float:
-@        @ store the result for the current set
-@        vst1.32         {d6,d7}, [r0]!
-@
-@        @ load the next set of values
-@        vld1.32         {q0}, [r1]!
-@        vld1.32         {q1}, [r2]!
-@        subs            r3, r3, #4
-@
-@        @ calculate values for the next set
-@        vmul.f32        q3, q0, q1         @ q3 = q0 * q1
-@
-@        bgt             .L_mainloop_float             @ loop if r3 > 0, if we have at least another 4 floats
-@
-@.L_mainloopend_float:
-@        @ the last iteration for this call
-@        @ store the result for the last one
-@          vst1.32         {d6,d7}, [r0]!
-@
-@.L_check_float:
-@     @ check if anything left to process at the end of the input array
-@        cmp               r4, #0
-@        ble               .L_return_float
-@
-@.L_secondloop_float:
-@     @ process the last few items left in the input array
-@        vld1.f32          d0[0], [r1]!           @ Fill in d0[0]
-@        vld1.f32          d1[0], [r2]!           @ Fill in d1[1]
-@
-@        subs              r4, r4, #1
-@
-@        @ values
-@        vmul.f32          d0, d0, d1
-@
-@        vst1.32           {d0[0]}, [r0]!
-@
-@        bgt               .L_secondloop_float
-@
-@.L_return_float:
-@        @ return
-@        pop               {r4}
-@        mov               r0, #0
-@        bx                lr
 
