@@ -71,6 +71,8 @@ void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
   int x, y;
   for(y = 0; y < 512; y++){
      for(x = 0; x < 512; x++){
+//  for(y = 0; y < 1; y++){
+//     for(x = 0; x < 8; x++){
         int a_fg = A(fgImage[(y*512)+x]);
         int dst_r = ((R(fgImage[(y*512)+x]) * a_fg) + (R(bgImage[(y*512)+x]) * (255-a_fg)))/256;
         int dst_g = ((G(fgImage[(y*512)+x]) * a_fg) + (G(bgImage[(y*512)+x]) * (255-a_fg)))/256;
@@ -79,6 +81,11 @@ void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
                               (0x00ff0000 & (dst_r << 16)) |
                               (0x0000ff00 & (dst_g << 8)) |
                               (0x000000ff & (dst_b));
+//		printf("a_fg[%d]: %d\n", (y*512)+x, a_fg);
+//		printf("dst_r[%d]: %d\n", (y*512)+x, dst_r);
+//		printf("dst_g[%d]: %d\n", (y*512)+x, dst_g);
+//		printf("dst_b[%d]: %d\n", (y*512)+x, dst_b);
+//		printf("dst[%u]: %u\n", (y*512)+x, dstImage[(y*512)+x]);
      }
   }
 }

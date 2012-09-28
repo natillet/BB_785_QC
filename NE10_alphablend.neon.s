@@ -50,8 +50,6 @@ alphablend_neon:
 		vdup.32           q14, r3
 		mov               r3, #255			@ 0x000000ff
 		vdup.32           q15, r3
-@		movw              r3, #65532		@ lower 16 (FFFC) 
-@		movt              r3, #15			@ upper 16 (F) => total FFFFC = 1048572 => image is (512px x 512px) x 4B
 		mov               r3, #0
 		movt              r3, #16			@ upper 16 (0x10) => total 0x100000 = 1048576 => image is (512px x 512px) x 4B
 		add               r3, r3, r0 
@@ -99,8 +97,10 @@ alphablend_neon:
 @					  (0x00ff0000 & (dst_r << 16)) |
 @					  (0x0000ff00 & (dst_g << 8)) |
 @					  (0x000000ff & (dst_b));
-		vand            q4, q4, q13			@ (0x00ff0000 & (dst_r << 16))
-		vand            q5, q5, q14			@ (0x0000ff00 & (dst_g << 8))
+		vshl.u32        q4, q4, #16			@ (dst_r << 16)
+		vand            q4, q4, q13			@ (0x00ff0000 & $)
+		vshl.u32        q5, q5, #8			@ (dst_g << 8)
+		vand            q5, q5, q14			@ (0x0000ff00 & $)
 		vand            q6, q6, q15			@ (0x000000ff & (dst_b))
 		vorr            q4, q4, q12			@
 		vorr            q5, q5, q4			@
