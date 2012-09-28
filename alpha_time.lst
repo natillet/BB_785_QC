@@ -106,7 +106,7 @@
   47:alpha_time.c  **** #elif FLAT
   48:alpha_time.c  ****      alphaBlend_flat(&foreImage[0], &backImage[0], &newImage[0]);
   49:alpha_time.c  **** #elif NEON
-  50:alpha_time.c  **** 	 alphablend_neon(&newImage[0], &backImage[0], &foreImage[0]);
+  50:alpha_time.c  **** 	 alphablend_neon(&newImage[0], &foreImage[0], &backImage[0]);
   51:alpha_time.c  **** #endif
   52:alpha_time.c  ****      gettimeofday(&newTv, NULL);
   53:alpha_time.c  ****      fprintf(stdout, "Routine took %d microseconds\n", (int)(newTv.tv_usec - oldTv.tv_usec));
