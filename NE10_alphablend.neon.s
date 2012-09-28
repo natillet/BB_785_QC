@@ -65,18 +65,18 @@ alphablend_neon:
 @		#define G(x) (((x) & 0x0000ff00) >> 8)
 @		#define B(x) ((x) & 0x000000ff)
 @		int a_fg = A(fgImage[y]);
-		vand            q2, q0, q12			@ fgImage & 0xff000000
-		vshr.u32        q2, q2, #24			@ $ >> 24 			= a_fg
-		vsub.i32        q3, q15, q2			@ 255 - a_fg
 @		int dst_r = ((R(fgImage[y]) * a_fg) + (R(bgImage[y]) * (255-a_fg)))/256;
 @		int dst_g = ((G(fgImage[y]) * a_fg) + (G(bgImage[y]) * (255-a_fg)))/256;
 @		int dst_b = ((B(fgImage[y]) * a_fg) + (B(bgImage[y]) * (255-a_fg)))/256;
 @ NOTE: 256 = 2^8! Use right shift to divide!
+		vand            q2, q0, q12			@ fgImage & 0xff000000
 		vand            q4, q0, q13			@ fgImage & 0x00ff0000
 		vand            q6, q0, q14			@ fgImage & 0x0000ff00
 		vand            q8, q0, q15			@ fgImage & 0x000000ff
+		vshr.u32        q2, q2, #24			@ $ >> 24 			= a_fg
 		vshr.u32        q4, q4, #16			@ $ >> 16
 		vshr.u32        q6, q6, #8			@ $ >> 16
+		vsub.i32        q3, q15, q2			@ 255 - a_fg
 		vmul.i32        q4, q2, q4			@ $ * a_fg 			= R(fgImage[y]) * a_fg)
 		vmul.i32        q6, q2, q6			@ $ * a_fg 			= G(fgImage[y]) * a_fg)
 		vmul.i32        q8, q2, q8			@ $ * a_fg 			= B(fgImage[y]) * a_fg)
