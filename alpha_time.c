@@ -1,16 +1,16 @@
 #include <stdio.h>
 #include <sys/time.h>
-#include "NE10_types.h"
 
-extern ne10_result_t alphablend_neon(ne10_int32_t * dst, ne10_int32_t * src1, ne10_int32_t * src2);
-void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage);
-void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage);
 
 #ifndef NEON
+void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage);
+void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage);
 int backImage[512 * 512];
 int foreImage[512 * 512];
 int newImage[512 * 512];
 #else
+#include "NE10_types.h"
+extern ne10_result_t alphablend_neon(ne10_int32_t * dst, ne10_int32_t * src1, ne10_int32_t * src2);
 ne10_int32_t backImage[512 * 512];
 ne10_int32_t foreImage[512 * 512];
 ne10_int32_t newImage[512 * 512];
@@ -61,11 +61,14 @@ int main(int argc, char**argv)
    return 2;
 }
 
+#ifndef NEON
 #define A(x) (((x) & 0xff000000) >> 24)
 #define R(x) (((x) & 0x00ff0000) >> 16)
 #define G(x) (((x) & 0x0000ff00) >> 8)
 #define B(x) ((x) & 0x000000ff)
+#endif
 
+#ifdef ORIGINAL
 void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
 {
   int x, y;
@@ -89,7 +92,9 @@ void alphaBlend_c(int *fgImage, int *bgImage, int *dstImage)
      }
   }
 }
+#endif
 
+#ifdef FLAT
 void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage)
 {
   int y;
@@ -104,3 +109,5 @@ void alphaBlend_flat(int *fgImage, int *bgImage, int *dstImage)
 						  (0x000000ff & (dst_b));
   }
 }
+#endif
+
